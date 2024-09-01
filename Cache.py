@@ -1,4 +1,15 @@
+import discord
 import random
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
 
 # Initialize the deck with 52 cards
 def initialize_deck():
@@ -25,57 +36,19 @@ def calculate_probabilities(deck, dealer_card):
 
     return lower_prob, higher_prob
 
-# Get input from the user for a card
-def get_card_input(player, used_cards):
-    suits = {'spades', 'hearts', 'diamonds', 'clubs'}
-    ranks = {'2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'}
-    
-    while True:
-        suit = input(f"Enter the suit for {player}'s card (spades, hearts, diamonds, clubs): ").strip().lower()
-        if suit == '-1':
-            print(f"{player} decided to exit the game.")
-            return -1
-        
-        rank = input(f"Enter the rank for {player}'s card (2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A): ").strip().upper()
-        if rank == '-1':
-            print(f"{player} decided to exit the game.")
-            return -1
-        
-        if suit not in suits or rank not in ranks:
-            print("\n")
-            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            print("Invalid suit or rank. Please try again.")
-            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            print("\n")
-            continue
-        
-        card = {'suit': suit, 'rank': rank}
-        
-        if card in used_cards:
-            print("This card has already been used. Please choose a different card.")
-        else:
-            return card
-
 # Function to display the card with symbols
 def display_card(card):
     symbols = {'spades': '♠️', 'hearts': '❤️', 'diamonds': '♦️', 'clubs': '♣️'}
-    try:
-        return f"{card['rank']} {symbols[card['suit']]}"
-    except KeyError:
-        print(f"Error displaying card: {card}. Invalid card detected.")
-        return "Invalid Card"
+    return f"{card['rank']} {symbols[card['suit']]}"
 
 # Function to filter and display unique used cards
 def display_unique_used_cards(used_cards):
-    # Use a list to keep unique cards
     unique_used_cards = []
     for card in used_cards:
         if card not in unique_used_cards:
             unique_used_cards.append(card)
     
-    print("Cards that have been used so far:")
-    for card in unique_used_cards:
-        print(display_card(card))
+    return "\n".join(display_card(card) for card in unique_used_cards)
 
 # Compare ranks to determine winner
 def compare_ranks(dealer_card, player_card):
@@ -90,72 +63,90 @@ def compare_ranks(dealer_card, player_card):
     else:
         return "Tie"
 
-# Initialize the deck and variables
+# Game state
 deck = initialize_deck()
 used_cards = []
 round_number = 1
 last_player_card = None
 
-# Continuous game loop
-while len(deck) > 0:
-    print(f"\n--- Round {round_number} ---")
+@client.event
+async def on_ready():
+    print(f'We have logged in as {client.user}')
 
-    # Input: Dealer's card
-    if last_player_card:
-        dealer_card = last_player_card
-        print(f"Dealer inherits the player's last card: {display_card(dealer_card)}")
-        last_player_card = None  # Reset after use
-    else:
-        dealer_card = get_card_input("Dealer", used_cards)
-        if dealer_card == -1:
-            break
-
-    deck = remove_card(deck, dealer_card)
-    used_cards.append(dealer_card)
-
-    # Calculate probabilities based on dealer's card
-    lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
-    print("\n ===================================")
-    print(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
-    print("\n ===================================")
+@client.event
+async def on_message(message):
+    global deck, used_cards, round_number, last_player_card
     
-    # Display used cards with filtering
-    display_unique_used_cards(used_cards)
-
-    if len(deck) == 0:
-        print("No more cards left in the deck!")
-        break
-
-    # Input: Player's card
-    player_card = get_card_input("Player", used_cards)
-    if player_card == -1:
-        break
-
-    deck = remove_card(deck, player_card)
-    used_cards.append(player_card)
-
-    # Compare ranks to determine outcome
-    result = compare_ranks(dealer_card, player_card)
+    if message.author == client.user:
+        return
     
-    if result == "Tie":
-        print(f"It's a tie! Both Dealer and Player drew {player_card['rank']}.")
-        last_player_card = player_card  # Dealer inherits the player's card for the next round
-    else:
-        print(f"{result} wins this round!")
-        last_player_card = player_card  # Dealer inherits the player's card for the next round
-    
-    # Display used cards with filtering
-    display_unique_used_cards(used_cards)
+    if message.content.lower().startswith("!startgame"):
+        deck = initialize_deck()
+        used_cards = []
+        round_number = 1
+        last_player_card = None
+        await message.channel.send("Game started! Enter `!dealercard` to start.")
 
-    if len(deck) == 0:
-        print("No more cards left in the deck!")
-        break
+    if message.content.lower().startswith("!dealercard"):
+        if last_player_card:
+            dealer_card = last_player_card
+            last_player_card = None  # Reset after use
+            await message.channel.send(f"Dealer inherits the player's last card: {display_card(dealer_card)}")
+        else:
+            await message.channel.send("Enter the suit and rank for Dealer's card (e.g., `!dealer spades Q`)")
+            return
 
-    # Ask if the user wants to continue or stop
-    continue_game = input("Do you want to continue to the next round? (y/n): ").strip().lower()
-    if continue_game != 'y':
-        break
-    
-    round_number += 1
+        deck = remove_card(deck, dealer_card)
+        used_cards.append(dealer_card)
 
-print("Game over!")
+        lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
+        await message.channel.send(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
+        await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+
+        if len(deck) == 0:
+            await message.channel.send("No more cards left in the deck!")
+            return
+
+    if message.content.lower().startswith("!dealer"):
+        _, suit, rank = message.content.split()
+        dealer_card = {'suit': suit, 'rank': rank.upper()}
+        if dealer_card in used_cards:
+            await message.channel.send("This card has already been used. Please choose a different card.")
+            return
+        
+        deck = remove_card(deck, dealer_card)
+        used_cards.append(dealer_card)
+
+        lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
+        await message.channel.send(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
+        await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+
+        if len(deck) == 0:
+            await message.channel.send("No more cards left in the deck!")
+            return
+        
+    if message.content.lower().startswith("!player"):
+        _, suit, rank = message.content.split()
+        player_card = {'suit': suit, 'rank': rank.upper()}
+        if player_card in used_cards:
+            await message.channel.send("This card has already been used. Please choose a different card.")
+            return
+        
+        deck = remove_card(deck, player_card)
+        used_cards.append(player_card)
+
+        result = compare_ranks(dealer_card, player_card)
+        if result == "Tie":
+            await message.channel.send(f"It's a tie! Both Dealer and Player drew {player_card['rank']}.")
+            last_player_card = player_card  # Dealer inherits the player's card for the next round
+        else:
+            await message.channel.send(f"{result} wins this round!")
+            last_player_card = player_card  # Dealer inherits the player's card for the next round
+        
+        await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+
+        if len(deck) == 0:
+            await message.channel.send("No more cards left in the deck!")
+            return
+
+client.run(TOKEN)
