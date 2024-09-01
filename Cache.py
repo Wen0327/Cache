@@ -11,19 +11,19 @@ def initialize_deck():
 def remove_card(deck, card):
     return [c for c in deck if not (c['suit'] == card['suit'] and c['rank'] == card['rank'])]
 
-# Function to calculate probabilities of low and high cards
-def calculate_probabilities(deck):
-    low_cards = {'2', '3', '4', '5', '6', '7'}
-    high_cards = {'8', '9', '10', 'J', 'Q', 'K', 'A'}
+# Function to calculate probabilities of lower or higher cards relative to dealer's card
+def calculate_probabilities(deck, dealer_card):
+    ranks_order = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    dealer_rank_index = ranks_order.index(dealer_card['rank'])
     
-    low_count = sum(1 for card in deck if card['rank'] in low_cards)
-    high_count = sum(1 for card in deck if card['rank'] in high_cards)
+    lower_count = sum(1 for card in deck if ranks_order.index(card['rank']) < dealer_rank_index)
+    higher_count = sum(1 for card in deck if ranks_order.index(card['rank']) > dealer_rank_index)
     
     total = len(deck)
-    low_prob = low_count / total if total > 0 else 0
-    high_prob = high_count / total if total > 0 else 0
+    lower_prob = lower_count / total if total > 0 else 0
+    higher_prob = higher_count / total if total > 0 else 0
 
-    return low_prob, high_prob
+    return lower_prob, higher_prob
 
 # Get input from the user for a card
 def get_card_input(player, used_cards):
@@ -65,10 +65,16 @@ def display_card(card):
         print(f"Error displaying card: {card}. Invalid card detected.")
         return "Invalid Card"
 
-# Function to display used cards
-def display_used_cards(used_cards):
-    print("Cards that have been used so far:")
+# Function to filter and display unique used cards
+def display_unique_used_cards(used_cards):
+    # Use a list to keep unique cards
+    unique_used_cards = []
     for card in used_cards:
+        if card not in unique_used_cards:
+            unique_used_cards.append(card)
+    
+    print("Cards that have been used so far:")
+    for card in unique_used_cards:
         print(display_card(card))
 
 # Compare ranks to determine winner
@@ -98,6 +104,7 @@ while len(deck) > 0:
     if last_player_card:
         dealer_card = last_player_card
         print(f"Dealer inherits the player's last card: {display_card(dealer_card)}")
+        last_player_card = None  # Reset after use
     else:
         dealer_card = get_card_input("Dealer", used_cards)
         if dealer_card == -1:
@@ -106,14 +113,14 @@ while len(deck) > 0:
     deck = remove_card(deck, dealer_card)
     used_cards.append(dealer_card)
 
-    # Calculate probabilities after the dealer's card is drawn
-    low_prob, high_prob = calculate_probabilities(deck)
+    # Calculate probabilities based on dealer's card
+    lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
     print("\n ===================================")
-    print(f"After dealer's card: Low: {low_prob * 100:.2f}%, High: {high_prob * 100:.2f}%")
+    print(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
     print("\n ===================================")
     
-    # Display used cards
-    display_used_cards(used_cards)
+    # Display used cards with filtering
+    display_unique_used_cards(used_cards)
 
     if len(deck) == 0:
         print("No more cards left in the deck!")
@@ -137,8 +144,8 @@ while len(deck) > 0:
         print(f"{result} wins this round!")
         last_player_card = player_card  # Dealer inherits the player's card for the next round
     
-    # Display used cards
-    display_used_cards(used_cards)
+    # Display used cards with filtering
+    display_unique_used_cards(used_cards)
 
     if len(deck) == 0:
         print("No more cards left in the deck!")
