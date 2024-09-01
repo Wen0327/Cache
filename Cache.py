@@ -68,6 +68,7 @@ deck = initialize_deck()
 used_cards = []
 round_number = 1
 last_player_card = None
+dealer_card = None  # 初始化 dealer_card
 
 @client.event
 async def on_ready():
@@ -75,7 +76,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    global deck, used_cards, round_number, last_player_card
+    global deck, used_cards, round_number, last_player_card, dealer_card
     
     if message.author == client.user:
         return
@@ -85,6 +86,7 @@ async def on_message(message):
         used_cards = []
         round_number = 1
         last_player_card = None
+        dealer_card = None
         await message.channel.send("Game started! Enter `!dealercard` to start.")
 
     if message.content.lower().startswith("!dealercard"):
@@ -109,7 +111,7 @@ async def on_message(message):
 
     if message.content.lower().startswith("!dealer"):
         _, suit, rank = message.content.split()
-        dealer_card = {'suit': suit, 'rank': rank.upper()}
+        dealer_card = {'suit': suit, 'rank': rank.upper()}  # 这里为 dealer_card 赋值
         if dealer_card in used_cards:
             await message.channel.send("This card has already been used. Please choose a different card.")
             return
@@ -126,6 +128,10 @@ async def on_message(message):
             return
         
     if message.content.lower().startswith("!player"):
+        if not dealer_card:
+            await message.channel.send("Please deal the Dealer's card first.")
+            return
+
         _, suit, rank = message.content.split()
         player_card = {'suit': suit, 'rank': rank.upper()}
         if player_card in used_cards:
@@ -138,15 +144,20 @@ async def on_message(message):
         result = compare_ranks(dealer_card, player_card)
         if result == "Tie":
             await message.channel.send(f"It's a tie! Both Dealer and Player drew {player_card['rank']}.")
-            last_player_card = player_card  # Dealer inherits the player's card for the next round
+            last_player_card = player_card
         else:
             await message.channel.send(f"{result} wins this round!")
-            last_player_card = player_card  # Dealer inherits the player's card for the next round
+            last_player_card = player_card
         
         await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+
+        # 在每轮结束后重新计算概率
+        lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
+        await message.channel.send(f"Updated probabilities: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
 
         if len(deck) == 0:
             await message.channel.send("No more cards left in the deck!")
             return
 
 client.run(TOKEN)
+
