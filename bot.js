@@ -1,5 +1,6 @@
-const { Client, GatewayIntentBits,Partials } = require("discord.js");
+const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const dotenv = require("dotenv");
+const { suits, ranks } = require("./cardConstants");
 
 dotenv.config();
 
@@ -17,23 +18,7 @@ const client = new Client({
 });
 
 // Initialize the deck with 52 cards
-function initializeDeck() {
-  const suits = ["spades", "hearts", "diamonds", "clubs"];
-  const ranks = [
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "J",
-    "Q",
-    "K",
-    "A",
-  ];
+const initializeDeck = () => {
   let deck = [];
   for (let suit of suits) {
     for (let rank of ranks) {
@@ -41,30 +26,16 @@ function initializeDeck() {
     }
   }
   return deck;
-}
+};
 
 // Function to remove a card from the deck
-function removeCard(deck, card) {
+const removeCard = (deck, card) => {
   return deck.filter((c) => !(c.suit === card.suit && c.rank === card.rank));
-}
+};
 
 // Function to calculate probabilities of lower or higher cards relative to dealer's card
-function calculateProbabilities(deck, dealerCard) {
-  const ranksOrder = [
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "J",
-    "Q",
-    "K",
-    "A",
-  ];
+const calculateProbabilities = (deck, dealerCard) => {
+  const ranksOrder = ranks;
   const dealerRankIndex = ranksOrder.indexOf(dealerCard.rank);
 
   const lowerCount = deck.filter(
@@ -79,39 +50,25 @@ function calculateProbabilities(deck, dealerCard) {
   const higherProb = total > 0 ? higherCount / total : 0;
 
   return { lowerProb, higherProb };
-}
+};
 
 // Function to display the card with symbols
-function displayCard(card) {
+const displayCard = (card) => {
   const symbols = { spades: "♠️", hearts: "❤️", diamonds: "♦️", clubs: "♣️" };
   return `${card.rank} ${symbols[card.suit]}`;
-}
+};
 
 // Function to filter and display unique used cards
-function displayUniqueUsedCards(usedCards) {
+const displayUniqueUsedCards = (usedCards) => {
   const uniqueUsedCards = [...new Set(usedCards.map(JSON.stringify))].map(
     JSON.parse
   );
   return uniqueUsedCards.map(displayCard).join("\n");
-}
+};
 
 // Compare ranks to determine winner
-function compareRanks(dealerCard, playerCard) {
-  const ranksOrder = [
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "J",
-    "Q",
-    "K",
-    "A",
-  ];
+const compareRanks = (dealerCard, playerCard) => {
+  const ranksOrder = ranks;
   const dealerRankValue = ranksOrder.indexOf(dealerCard.rank);
   const playerRankValue = ranksOrder.indexOf(playerCard.rank);
 
@@ -122,7 +79,7 @@ function compareRanks(dealerCard, playerCard) {
   } else {
     return "Tie";
   }
-}
+};
 
 // Game state
 let deck = initializeDeck();
@@ -214,22 +171,8 @@ client.on("messageCreate", async (message) => {
     const suit = args[1].toLowerCase();
     const rank = args[2].toUpperCase();
 
-    const validSuits = ["spades", "hearts", "diamonds", "clubs"];
-    const validRanks = [
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "J",
-      "Q",
-      "K",
-      "A",
-    ];
+    const validSuits = suits;
+    const validRanks = ranks;
 
     if (!validSuits.includes(suit) || !validRanks.includes(rank)) {
       await message.channel.send(
