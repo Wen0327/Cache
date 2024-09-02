@@ -60,19 +60,16 @@ async def on_message(message):
             # Apply mosaic effect (pixelation)
             mosaic_img = apply_mosaic(img_array, mosaic_scale=0.08)  # Adjust mosaic_scale to control pixel size
 
-            # Apply Gaussian blur after mosaic effect
-            blurred_img = cv2.GaussianBlur(mosaic_img, (15, 15), 0)
-
             # Convert the processed image back to PIL format
-            pil_img = Image.fromarray(blurred_img)
+            pil_img = Image.fromarray(mosaic_img)
 
             # Save the image to a byte stream
             img_byte_arr = io.BytesIO()
             pil_img.save(img_byte_arr, format='PNG')
             img_byte_arr.seek(0)
 
-            # Send the blurred and pixelated image as a file back to Discord
-            await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_blurred_image.png'))
+            # Send the pixelated image as a file back to Discord
+            await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_image.png'))
 
         except Exception as e:
             await message.channel.send(f"Error: {str(e)}")
