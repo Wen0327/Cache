@@ -67,7 +67,7 @@ deck = initialize_deck()
 used_cards = []
 round_number = 1
 last_player_card = None
-dealer_card = None  # init dealer_card
+dealer_card = None  # 初始化 dealer_card
 
 @client.event
 async def on_ready():
@@ -79,6 +79,9 @@ async def on_message(message):
     
     if message.author == client.user:
         return
+    
+    valid_suits = ['spades', 'hearts', 'diamonds', 'clubs']
+    valid_ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
     
     if message.content.lower().startswith("!startgame"):
         deck = initialize_deck()
@@ -92,6 +95,7 @@ async def on_message(message):
 
     if message.content.lower().startswith("!hg"):
         await message.channel.send("'spades': '♠️', 'hearts': '❤️', 'diamonds': '♦️', 'clubs': '♣️'")
+    
     if message.content.lower().startswith("!reset"):
         deck = initialize_deck()
         used_cards = []
@@ -120,59 +124,71 @@ async def on_message(message):
             await message.channel.send("No more cards left in the deck!")
             return
 
-    if message.content.lower().startswith("!dealer"):
-        _, suit, rank = message.content.split()
-        dealer_card = {'suit': suit, 'rank': rank.upper()}
-        if dealer_card in used_cards:
-            await message.channel.send("This card has already been used. Please choose a different card.")
-            return
+    if message.content.lower().startswith("!dealer") or message.content.lower().startswith("!player"):
+        try:
+            _, suit, rank = message.content.split()
+            suit = suit.lower()
+            rank = rank.upper()
+
+            if suit not in valid_suits or rank not in valid_ranks:
+                await message.channel.send("Invalid suit or rank. Please enter a valid suit ('spades', 'hearts', 'diamonds', 'clubs') and rank (2-10, J, Q, K, A).")
+                return
+
+            card = {'suit': suit, 'rank': rank}
+
+            if message.content.lower().startswith("!dealer"):
+                dealer_card = card
+                if dealer_card in used_cards:
+                    await message.channel.send("This card has already been used. Please choose a different card.")
+                    return
+                
+                deck = remove_card(deck, dealer_card)
+                used_cards.append(dealer_card)
+
+                lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
+                await message.channel.send(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
+                await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+                await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
+
+                if len(deck) == 0:
+                    await message.channel.send("No more cards left in the deck!")
+                    return
+                
+            elif message.content.lower().startswith("!player"):
+                if not dealer_card:
+                    await message.channel.send("Please deal the Dealer's card first.")
+                    return
+
+                if card in used_cards:
+                    await message.channel.send("This card has already been used. Please choose a different card.")
+                    return
+                
+                deck = remove_card(deck, card)
+                used_cards.append(card)
+
+                result = compare_ranks(dealer_card, card)
+                if result == "Tie":
+                    await message.channel.send(f"It's a tie! Both Dealer and Player drew {card['rank']}.")
+                    last_player_card = card
+                    dealer_card = card
+                else:
+                    await message.channel.send(f"{result} wins this round!")
+                    last_player_card = card
+                    dealer_card = card
+                
+                await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+
+                # calculate the rates, including after a tie
+                lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
+                await message.channel.send(f"Updated probabilities: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
+                await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+                await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
+
+                if len(deck) == 0:
+                    await message.channel.send("No more cards left in the deck!")
+                    return
         
-        deck = remove_card(deck, dealer_card)
-        used_cards.append(dealer_card)
-
-        lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
-        await message.channel.send(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
-        await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
-        await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
-
-        if len(deck) == 0:
-            await message.channel.send("No more cards left in the deck!")
-            return
-        
-    if message.content.lower().startswith("!player"):
-        if not dealer_card:
-            await message.channel.send("Please deal the Dealer's card first.")
-            return
-
-        _, suit, rank = message.content.split()
-        player_card = {'suit': suit, 'rank': rank.upper()}
-        if player_card in used_cards:
-            await message.channel.send("This card has already been used. Please choose a different card.")
-            return
-        
-        deck = remove_card(deck, player_card)
-        used_cards.append(player_card)
-
-        result = compare_ranks(dealer_card, player_card)
-        if result == "Tie":
-            await message.channel.send(f"It's a tie! Both Dealer and Player drew {player_card['rank']}.")
-            last_player_card = player_card
-            dealer_card = player_card
-        else:
-            await message.channel.send(f"{result} wins this round!")
-            last_player_card = player_card
-            dealer_card = player_card
-        
-        await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
-
-        # calculate the rates
-        lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
-        await message.channel.send(f"Updated probabilities: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
-        await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
-
-        if len(deck) == 0:
-            await message.channel.send("No more cards left in the deck!")
-            return
+        except ValueError:
+            await message.channel.send("Invalid format. Please enter the command in the format: `!player <suit> <rank>` or `!dealer <suit> <rank>`.")
 
 client.run(TOKEN)
-
