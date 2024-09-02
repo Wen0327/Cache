@@ -68,7 +68,7 @@ deck = initialize_deck()
 used_cards = []
 round_number = 1
 last_player_card = None
-dealer_card = None  # 初始化 dealer_card
+dealer_card = None  # init dealer_card
 
 @client.event
 async def on_ready():
@@ -82,6 +82,14 @@ async def on_message(message):
         return
     
     if message.content.lower().startswith("!startgame"):
+        deck = initialize_deck()
+        used_cards = []
+        round_number = 1
+        last_player_card = None
+        dealer_card = None
+        await message.channel.send("Game started! Enter `!dealercard` to start.")
+
+    if message.content.lower().startswith("!reset"):
         deck = initialize_deck()
         used_cards = []
         round_number = 1
@@ -122,6 +130,7 @@ async def on_message(message):
         lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
         await message.channel.send(f"Based on dealer's card: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
         await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
+        await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
 
         if len(deck) == 0:
             await message.channel.send("No more cards left in the deck!")
@@ -156,6 +165,7 @@ async def on_message(message):
         # 在每轮结束后重新计算概率
         lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
         await message.channel.send(f"Updated probabilities: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
+        await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
 
         if len(deck) == 0:
             await message.channel.send("No more cards left in the deck!")
