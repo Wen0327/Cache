@@ -7,10 +7,15 @@ import io
 from PIL import Image
 from dotenv import load_dotenv
 import random
+import json
 
 # Load Discord Bot Token
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+
+# Load character names mapping
+with open('monster.json', 'r') as file:
+    character_names_mapping = json.load(file)
 
 # Initialize Discord client
 intents = discord.Intents.default()
@@ -26,7 +31,7 @@ user_played_urls = {}
 
 # Function to generate a random odd number between 6533 and 6199
 def get_random_odd_number():
-    res = random.choice([i for i in range(6199, 6534) if i % 2 != 0])
+    res = random.choice([i for i in range(6199, 6534)])
     print(res)
     return res
 
@@ -127,5 +132,17 @@ async def on_message(message):
             await message.channel.send("Game has been reset!")
         else:
             await message.channel.send("You haven't started any game yet!")
+
+    # Handle !guess <character name> command
+    elif message.content.lower().startswith('!guess '):
+        guess = message.content[7:].strip()
+        if user_id in user_last_image_url:
+            correct_name = character_names_mapping.get(user_last_image_url[user_id], None)
+            if correct_name and guess.lower() == correct_name.lower():
+                await message.channel.send("Correct!")
+            else:
+                await message.channel.send("Incorrect!")
+        else:
+            await message.channel.send("You haven't started a game yet!")
 
 client.run(TOKEN)
