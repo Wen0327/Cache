@@ -88,7 +88,11 @@ async def on_message(message):
         last_player_card = None
         dealer_card = None
         await message.channel.send("Game started! Enter `!dealercard` to start.")
+        await message.channel.send("Enter !hg to check the rule")
+        await message.channel.send("'spades': '♠️', 'hearts': '❤️', 'diamonds': '♦️', 'clubs': '♣️'")
 
+    if message.content.lower().startswith("!hg"):
+        await message.channel.send("'spades': '♠️', 'hearts': '❤️', 'diamonds': '♦️', 'clubs': '♣️'")
     if message.content.lower().startswith("!reset"):
         deck = initialize_deck()
         used_cards = []
