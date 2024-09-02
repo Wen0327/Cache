@@ -21,6 +21,8 @@ client = discord.Client(intents=intents)
 user_last_image_url = {}
 # Dictionary to store the number of games played by each user
 user_game_count = {}
+# Dictionary to store the URLs played by each user
+user_played_urls = {}
 
 # Function to generate a random odd number between 6533 and 6199
 def get_random_odd_number():
@@ -57,15 +59,22 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # Initialize user's game count if not already initialized
+    # Initialize user's game count and played URLs if not already initialized
     if user_id not in user_game_count:
         user_game_count[user_id] = 0
+    if user_id not in user_played_urls:
+        user_played_urls[user_id] = set()
 
     # Handle !start command
     if message.content.lower() == '!start':
-        random_number = get_random_odd_number()
-        image_url = f'https://dic.xflag.com/monsterstrike/assets-update/img/monster/{random_number}/character.webp'
-        user_last_image_url[user_id] = image_url  # Store the URL for the user
+        # Generate a unique image URL that the user has not played yet
+        while True:
+            random_number = get_random_odd_number()
+            image_url = f'https://dic.xflag.com/monsterstrike/assets-update/img/monster/{random_number}/character.webp'
+            if image_url not in user_played_urls[user_id]:
+                user_last_image_url[user_id] = image_url
+                user_played_urls[user_id].add(image_url)
+                break
 
         # Increment the user's game count
         user_game_count[user_id] += 1
@@ -97,7 +106,6 @@ async def on_message(message):
             await message.channel.send(f"Round: {games_played} !")
             await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_blur_image.png'))
 
-
         except Exception as e:
             await message.channel.send(f"Error: {str(e)}")
 
@@ -109,5 +117,15 @@ async def on_message(message):
         else:
             # Notify the user that they haven't started a game yet
             await message.channel.send("還沒開始就認輸喔==")
+
+    # Handle !reset command
+    elif message.content.lower() == '!reset':
+        if user_id in user_game_count:
+            # Reset the game count and last image URL
+            user_game_count[user_id] = 0
+            user_last_image_url.pop(user_id, None)
+            await message.channel.send("Game has been reset!")
+        else:
+            await message.channel.send("You haven't started any game yet!")
 
 client.run(TOKEN)
