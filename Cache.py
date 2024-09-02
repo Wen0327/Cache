@@ -1,5 +1,4 @@
 import discord
-import random
 import os
 from dotenv import load_dotenv
 
@@ -166,7 +165,7 @@ async def on_message(message):
         
         await message.channel.send(f"Cards that have been used so far:\n{display_unique_used_cards(used_cards)}")
 
-        # 在每轮结束后重新计算概率
+        # calculate the rates
         lower_prob, higher_prob = calculate_probabilities(deck, dealer_card)
         await message.channel.send(f"Updated probabilities: Lower: {lower_prob * 100:.2f}%, Higher: {higher_prob * 100:.2f}%")
         await message.channel.send("Enter `!player <suit> <rank>` to continue the game.")
