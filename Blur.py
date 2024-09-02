@@ -26,18 +26,21 @@ def get_random_odd_number():
     print(res)
     return res
 
-# Function to apply a mosaic (pixelated) effect
-def apply_mosaic(img_array, mosaic_scale=0.1):
+# Function to apply a mosaic (pixelated) and blur effect
+def apply_mosaic_and_blur(img_array, mosaic_scale=0.04, blur_ksize=(5, 5)):
     # Get the dimensions of the image
     height, width = img_array.shape[:2]
     
-    # Resize the image to a smaller size
+    # Resize the image to a smaller size to create a mosaic effect
     small_img = cv2.resize(img_array, (int(width * mosaic_scale), int(height * mosaic_scale)), interpolation=cv2.INTER_LINEAR)
     
     # Scale the image back up to original size
     mosaic_img = cv2.resize(small_img, (width, height), interpolation=cv2.INTER_NEAREST)
     
-    return mosaic_img
+    # Apply Gaussian blur to the mosaic image
+    blurred_mosaic_img = cv2.GaussianBlur(mosaic_img, blur_ksize, 0)
+    
+    return blurred_mosaic_img
 
 # Bot startup event
 @client.event
@@ -64,19 +67,19 @@ async def on_message(message):
             img_data = response.content
             img_array = np.array(Image.open(io.BytesIO(img_data)))
 
-            # Apply mosaic effect (pixelation)
-            mosaic_img = apply_mosaic(img_array, mosaic_scale=0.07)  # Adjust mosaic_scale to control pixel size
+            # Apply mosaic and blur effect
+            mosaic_blur_img = apply_mosaic_and_blur(img_array, mosaic_scale=0.03, blur_ksize=(7, 7))  # Adjust mosaic_scale and blur_ksize
 
             # Convert the processed image back to PIL format
-            pil_img = Image.fromarray(mosaic_img)
+            pil_img = Image.fromarray(mosaic_blur_img)
 
             # Save the image to a byte stream
             img_byte_arr = io.BytesIO()
             pil_img.save(img_byte_arr, format='PNG')
             img_byte_arr.seek(0)
 
-            # Send the pixelated image as a file back to Discord
-            await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_image.png'))
+            # Send the pixelated and blurred image as a file back to Discord
+            await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_blur_image.png'))
 
         except Exception as e:
             await message.channel.send(f"Error: {str(e)}")
