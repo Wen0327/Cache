@@ -19,10 +19,12 @@ client = discord.Client(intents=intents)
 
 # Dictionary to store the last image URL for each user
 user_last_image_url = {}
+# Dictionary to store the number of games played by each user
+user_game_count = {}
 
 # Function to generate a random odd number between 6533 and 6199
 def get_random_odd_number():
-    res = random.choice([i for i in range(6199, 6534)])
+    res = random.choice([i for i in range(6199, 6534) if i % 2 != 0])
     print(res)
     return res
 
@@ -55,11 +57,24 @@ async def on_message(message):
 
     user_id = message.author.id
 
+    # Initialize user's game count if not already initialized
+    if user_id not in user_game_count:
+        user_game_count[user_id] = 0
+
     # Handle !start command
     if message.content.lower() == '!start':
         random_number = get_random_odd_number()
         image_url = f'https://dic.xflag.com/monsterstrike/assets-update/img/monster/{random_number}/character.webp'
         user_last_image_url[user_id] = image_url  # Store the URL for the user
+
+        # Increment the user's game count
+        user_game_count[user_id] += 1
+        games_played = user_game_count[user_id]
+
+        # Adjust difficulty based on the number of games played
+        difficulty_multiplier = 1 + (games_played // 10) * 0.1
+        mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)  # Decrease mosaic scale (increase difficulty)
+        blur_ksize = (min(15, int(7 * difficulty_multiplier)), min(15, int(7 * difficulty_multiplier)))  # Increase blur kernel size
 
         try:
             # Download the image
@@ -67,8 +82,8 @@ async def on_message(message):
             img_data = response.content
             img_array = np.array(Image.open(io.BytesIO(img_data)))
 
-            # Apply mosaic and blur effect
-            mosaic_blur_img = apply_mosaic_and_blur(img_array, mosaic_scale=0.03, blur_ksize=(7, 7))  # Adjust mosaic_scale and blur_ksize
+            # Apply mosaic and blur effect with adjusted difficulty
+            mosaic_blur_img = apply_mosaic_and_blur(img_array, mosaic_scale=mosaic_scale, blur_ksize=blur_ksize)
 
             # Convert the processed image back to PIL format
             pil_img = Image.fromarray(mosaic_blur_img)
@@ -79,7 +94,9 @@ async def on_message(message):
             img_byte_arr.seek(0)
 
             # Send the pixelated and blurred image as a file back to Discord
+            await message.channel.send(f"Round: {games_played} !")
             await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_blur_image.png'))
+
 
         except Exception as e:
             await message.channel.send(f"Error: {str(e)}")
