@@ -70,6 +70,9 @@ async def on_message(message):
     if user_id not in user_played_urls:
         user_played_urls[user_id] = set()
 
+    if message.content.lower() == '!fuckme':
+        await message.channel.send(f"以諾寶貝我來了! :hot_face: ")
+
     # Handle !start command
     if message.content.lower() == '!start':
         # Generate a unique image URL that the user has not played yet
@@ -139,9 +142,9 @@ async def on_message(message):
         if user_id in user_last_image_url:
             correct_name = character_names_mapping.get(user_last_image_url[user_id], None)
             if correct_name and guess.lower() == correct_name.lower():
-                await message.channel.send("Correct!")
+                await message.channel.send("作弊吧老🈹!")
             else:
-                await message.channel.send("Incorrect!")
+                await message.channel.send("下去摟!")
         else:
             await message.channel.send("You haven't started a game yet!")
 
