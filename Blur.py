@@ -71,7 +71,10 @@ async def on_message(message):
         user_played_urls[user_id] = set()
 
     if message.content.lower() == '!fuckme':
-        await message.channel.send(f"以諾寶貝我來了! :hot_face: ")
+
+        user = message.author
+        res = f"{user.mention} 寶貝我來了! :hot_face: "
+        await message.channel.send(res)
 
     # Handle !start command
     if message.content.lower() == '!start':
