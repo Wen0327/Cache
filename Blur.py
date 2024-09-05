@@ -124,7 +124,7 @@ async def on_message(message):
     elif message.content.lower() == '!giveup':
         if user_id in user_last_image_url:
             # Send the original image URL
-            await message.channel.send(f"Answer: {user_last_image_url[user_id]}")
+            await message.channel.send(f"Answer:|| {user_last_image_url[user_id]} ||")
         else:
             # Notify the user that they haven't started a game yet
             await message.channel.send("還沒開始就認輸喔==")
