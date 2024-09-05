@@ -99,10 +99,16 @@ async def on_message(message):
         user_game_count[user_id] += 1
         games_played = user_game_count[user_id]
 
-        # Adjust difficulty based on user input
-        difficulty_multiplier = 1 + (difficulty - 1) * 0.2  # Customize based on the input difficulty
-        mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)  # Decrease mosaic scale (increase difficulty)
-        blur_ksize = (min(15, int(7 * difficulty_multiplier)), min(15, int(7 * difficulty_multiplier)))  # Increase blur kernel size
+       # Adjust difficulty based on user input
+        difficulty_multiplier = 1 + (difficulty - 1) * 0.2
+        mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)
+
+        # Ensure blur kernel size is always an odd number
+        blur_ksize_value = max(1, int(7 * difficulty_multiplier))  # Ensure it's at least 1
+        if blur_ksize_value % 2 == 0:
+            blur_ksize_value += 1  # Make it odd if it's even
+
+        blur_ksize = (min(15, blur_ksize_value), min(15, blur_ksize_value))  # Ensure max size is 15
 
         try:
             # Download the image
@@ -142,10 +148,17 @@ async def on_message(message):
             # Ensure difficulty is within a reasonable range
             difficulty = max(1, min(difficulty, 10))  # Limit difficulty between 1 and 10
 
-            # Adjust difficulty based on user input
+           # Adjust difficulty based on user input
             difficulty_multiplier = 1 + (difficulty - 1) * 0.2
             mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)
-            blur_ksize = (min(15, int(7 * difficulty_multiplier)), min(15, int(7 * difficulty_multiplier)))
+
+            # Ensure blur kernel size is always an odd number
+            blur_ksize_value = max(1, int(7 * difficulty_multiplier))  # Ensure it's at least 1
+            if blur_ksize_value % 2 == 0:
+                blur_ksize_value += 1  # Make it odd if it's even
+
+            blur_ksize = (min(15, blur_ksize_value), min(15, blur_ksize_value))  # Ensure max size is 15
+            
 
             try:
                 # Get the last image URL and download the image
