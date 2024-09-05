@@ -56,7 +56,6 @@ def apply_mosaic_and_blur(img_array, mosaic_scale=0.04, blur_ksize=(5, 5)):
 async def on_ready():
     print(f'Logged in as {client.user}!')
 
-# Message handling event
 @client.event
 async def on_message(message):
     if message.author.bot:
@@ -71,13 +70,22 @@ async def on_message(message):
         user_played_urls[user_id] = set()
 
     if message.content.lower() == '!fuckme':
-
         user = message.author
-        res = f"{user.mention} 寶貝我來了! :hot_face: "
+        res = f"{user.mention} 寶貝我來了! :hot_face:"
         await message.channel.send(res)
 
-    # Handle !start command
-    if message.content.lower() == '!start':
+    # Handle !start <difficulty> command
+    if message.content.lower().startswith('!start'):
+        # Extract the difficulty level if provided
+        parts = message.content.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            difficulty = int(parts[1])
+        else:
+            difficulty = 1  # Default difficulty if not provided
+
+        # Ensure difficulty is within a reasonable range
+        difficulty = max(1, min(difficulty, 10))  # Limit difficulty between 1 and 10
+
         # Generate a unique image URL that the user has not played yet
         while True:
             random_number = get_random_odd_number()
@@ -91,8 +99,8 @@ async def on_message(message):
         user_game_count[user_id] += 1
         games_played = user_game_count[user_id]
 
-        # Adjust difficulty based on the number of games played
-        difficulty_multiplier = 1 + (games_played // 10) * 0.1
+        # Adjust difficulty based on user input
+        difficulty_multiplier = 1 + (difficulty - 1) * 0.2  # Customize based on the input difficulty
         mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)  # Decrease mosaic scale (increase difficulty)
         blur_ksize = (min(15, int(7 * difficulty_multiplier)), min(15, int(7 * difficulty_multiplier)))  # Increase blur kernel size
 
@@ -114,11 +122,57 @@ async def on_message(message):
             img_byte_arr.seek(0)
 
             # Send the pixelated and blurred image as a file back to Discord
-            await message.channel.send(f"Round: {games_played} !")
+            await message.channel.send(f"Round: {games_played}, Difficulty: {difficulty}!")
             await message.channel.send(file=discord.File(fp=img_byte_arr, filename='mosaic_blur_image.png'))
 
         except Exception as e:
             await message.channel.send(f"Error: {str(e)}")
+
+    # Handle !re <difficulty> command to reapply difficulty to the same image
+    elif message.content.lower().startswith('!re'):
+        # Check if the user has an ongoing game
+        if user_id in user_last_image_url:
+            # Extract the difficulty level if provided
+            parts = message.content.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                difficulty = int(parts[1])
+            else:
+                difficulty = 1  # Default difficulty if not provided
+
+            # Ensure difficulty is within a reasonable range
+            difficulty = max(1, min(difficulty, 10))  # Limit difficulty between 1 and 10
+
+            # Adjust difficulty based on user input
+            difficulty_multiplier = 1 + (difficulty - 1) * 0.2
+            mosaic_scale = max(0.02, 0.04 / difficulty_multiplier)
+            blur_ksize = (min(15, int(7 * difficulty_multiplier)), min(15, int(7 * difficulty_multiplier)))
+
+            try:
+                # Get the last image URL and download the image
+                image_url = user_last_image_url[user_id]
+                response = requests.get(image_url)
+                img_data = response.content
+                img_array = np.array(Image.open(io.BytesIO(img_data)))
+
+                # Apply mosaic and blur effect with new difficulty
+                mosaic_blur_img = apply_mosaic_and_blur(img_array, mosaic_scale=mosaic_scale, blur_ksize=blur_ksize)
+
+                # Convert the processed image back to PIL format
+                pil_img = Image.fromarray(mosaic_blur_img)
+
+                # Save the image to a byte stream
+                img_byte_arr = io.BytesIO()
+                pil_img.save(img_byte_arr, format='PNG')
+                img_byte_arr.seek(0)
+
+                # Send the updated image back to Discord
+                await message.channel.send(f"Reapplied difficulty: {difficulty}!")
+                await message.channel.send(file=discord.File(fp=img_byte_arr, filename='reapplied_mosaic_blur_image.png'))
+
+            except Exception as e:
+                await message.channel.send(f"Error: {str(e)}")
+        else:
+            await message.channel.send("You haven't started a game yet!")
 
     # Handle !giveup command
     elif message.content.lower() == '!giveup':
