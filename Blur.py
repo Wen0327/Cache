@@ -69,6 +69,20 @@ async def on_message(message):
     if user_id not in user_played_urls:
         user_played_urls[user_id] = set()
 
+    if message.content.lower() == '!help':
+        await message.channel.send(f"** COMMAND LIST **")
+        await message.channel.send(f"!fuckme" )
+        await message.channel.send(f" ")
+        await message.channel.send(f"Users can set difficulty, difficulty range: From 1-10")
+        await message.channel.send(f"!start  <difficulty|Integer>")
+        await message.channel.send(f" ")
+        await message.channel.send(f"!re  <difficulty|Integer>")
+        await message.channel.send(f"Users can reset difficulty with same image")
+        await message.channel.send(f" ")
+        await message.channel.send(f"!giveup")
+        await message.channel.send(f"Users can input this command to show the answer")
+
+
     if message.content.lower() == '!fuckme':
         user = message.author
         res = f"{user.mention} 寶貝我來了! :hot_face:"
