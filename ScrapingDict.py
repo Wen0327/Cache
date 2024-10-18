@@ -7,7 +7,10 @@ from bs4 import BeautifulSoup
 # downloaded_Char
 # switch to ball
 # downloaded_Ball
-download_folder = os.path.expanduser("~/Downloads/Side Project/Cache/Ranking")
+# downloaded_Ranking
+download_folder = os.path.expanduser(
+    "~/Downloads/Side Project/Cache/downloaded_Ranking"
+)
 if not os.path.exists(download_folder):
     os.makedirs(download_folder)
 
