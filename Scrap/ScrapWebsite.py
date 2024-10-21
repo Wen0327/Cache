@@ -1,39 +1,44 @@
 import requests
+from bs4 import BeautifulSoup
 import os
-from PIL import Image
-from io import BytesIO
+from urllib.parse import urljoin, urlparse
 
 
 def download_images(url):
-    # 取得圖片的檔案名稱
-    image_name = url.split("/")[-1]
-    # 檢查目錄是否存在，如果不存在則創建
-    if not os.path.exists("images"):
-        os.makedirs("images")
-    # 設定儲存路徑
-    save_path = os.path.join("images", image_name)
-
-    # 發送請求取得圖片內容
+    # 發送 HTTP 請求獲取網頁內容
     response = requests.get(url)
+    response.raise_for_status()  # 檢查請求是否成功
 
-    # 檢查請求是否成功
-    if response.status_code == 200:
-        # 以二進位寫入圖片檔案
-        with open(save_path, "wb") as file:
-            file.write(response.content)
-        print(f"圖片已儲存到 {save_path}")
+    # 解析網頁內容
+    soup = BeautifulSoup(response.text, "html.parser")
+    img_tags = soup.find_all("img")
 
-        # 嘗試用 PIL 開啟圖片來確認是否為有效圖片
+    # 創建資料夾來保存圖片
+    os.makedirs("downloaded_images", exist_ok=True)
+
+    for img in img_tags:
+        img_url = img.get("src")
+        # 確保圖片 URL 完整
+        img_url = urljoin(url, img_url)
+
+        # 確認圖片的 URL 是否有效
+        parsed_url = urlparse(img_url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            continue
+
+        # 獲取圖片的名稱
+        img_name = os.path.basename(parsed_url.path)
+
         try:
-            img = Image.open(BytesIO(response.content))
-            img.verify()  # 驗證圖片
-            print("圖片下載並驗證成功！")
+            # 下載圖片
+            img_data = requests.get(img_url).content
+            with open(os.path.join("downloaded_images", img_name), "wb") as img_file:
+                img_file.write(img_data)
+            print(f"Downloaded: {img_name}")
         except Exception as e:
-            print("圖片可能損壞或格式不支援:", e)
-    else:
-        print(f"下載圖片失敗，狀態碼：{response.status_code}")
+            print(f"Failed to download {img_url}: {e}")
 
 
-# 測試用圖片網址
-image_url = "https://www.monster-strike.com/entryimage/FbMXdUzC20241017.png"
-download_images(image_url)
+# 使用範例
+url = input("請輸入網址: ")
+download_images(url)
