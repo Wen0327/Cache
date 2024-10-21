@@ -5,9 +5,14 @@ from bs4 import BeautifulSoup
 # 設定圖片下載的目標資料夾
 # switch to character
 # downloaded_Char
+
 # switch to ball
 # downloaded_Ball
+
+# switch to ranking
 # downloaded_Ranking
+
+# need to change the path
 download_folder = os.path.expanduser(
     "~/Downloads/Side Project/Cache/downloaded_Ranking"
 )
@@ -24,6 +29,7 @@ for random_number in range(start_number, end_number + 1):
 
     # switch to character
     # f"https://dic.xflag.com/monsterstrike/assets-update/img/monster/{random_number}/character.webp"
+
     # switch to ball
     # f"https://dic.xflag.com/monsterstrike/assets-update/img/monster/{random_number}/ball.webp"
 

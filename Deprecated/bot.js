@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 const dotenv = require("dotenv");
-const { suits, ranks } = require("./cardConstants");
+const { suits, ranks } = require("../Poker/cardConstants");
 
 dotenv.config();
 
