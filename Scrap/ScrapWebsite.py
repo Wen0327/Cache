@@ -29,10 +29,19 @@ def download_images(url):
         # 獲取圖片的名稱
         img_name = os.path.basename(parsed_url.path)
 
+        # 檢查檔案名稱是否已存在，若存在則自動修改名稱
+        img_path = os.path.join("downloaded_images", img_name)
+        base_name, extension = os.path.splitext(img_name)
+        counter = 1
+        while os.path.exists(img_path):
+            img_name = f"{base_name}_{counter}{extension}"
+            img_path = os.path.join("downloaded_images", img_name)
+            counter += 1
+
         try:
             # 下載圖片
             img_data = requests.get(img_url).content
-            with open(os.path.join("downloaded_images", img_name), "wb") as img_file:
+            with open(img_path, "wb") as img_file:
                 img_file.write(img_data)
             print(f"Downloaded: {img_name}")
         except Exception as e:
