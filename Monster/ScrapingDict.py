@@ -1,5 +1,6 @@
 import os
 import requests
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 # 設定角色和球的基礎資料夾
@@ -16,7 +17,7 @@ os.makedirs(ball_folder, exist_ok=True)
 
 # 下載圖片的範圍
 start_number = 1
-end_number = 6600
+end_number = 7000
 
 
 # 定義下載並儲存圖片的函式
@@ -55,8 +56,12 @@ def download_images_for_number(number):
     download_image(ball_url, ball_folder, ball_filename)
 
 
+start_time = time.time()
 # 使用多執行緒來並行下載圖片 根據網路和電腦性能來調整max_workers
-with ThreadPoolExecutor(max_workers=10) as executor:
+with ThreadPoolExecutor(max_workers=25) as executor:
     executor.map(download_images_for_number, range(start_number, end_number + 1))
 
-print("圖片下載完成。")
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print(f"圖片下載完成。 耗時: {elapsed_time:.2f} 秒")
