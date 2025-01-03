@@ -1,6 +1,7 @@
 import os
 import requests
 import time
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 # 設定角色和球的基礎資料夾
@@ -56,6 +57,18 @@ def download_images_for_number(number):
     download_image(ball_url, ball_folder, ball_filename)
 
 
+# 壓縮資料夾的函式 (覆蓋已存在的 ZIP 檔)
+def zip_folder(folder_path, zip_name):
+    zip_path = f"{zip_name}.zip"
+
+    # 如果已存在 ZIP 檔案，先刪除它
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    shutil.make_archive(zip_name, "zip", folder_path)
+    print(f"已壓縮: {zip_name}.zip")
+
+
 start_time = time.time()
 # 使用多執行緒來並行下載圖片 根據網路和電腦性能來調整max_workers
 with ThreadPoolExecutor(max_workers=25) as executor:
@@ -65,3 +78,8 @@ end_time = time.time()
 elapsed_time = end_time - start_time
 
 print(f"圖片下載完成。 耗時: {elapsed_time:.2f} 秒")
+
+zip_folder(char_folder, os.path.join(os.path.dirname(char_folder), "downloaded_Char"))
+zip_folder(ball_folder, os.path.join(os.path.dirname(ball_folder), "downloaded_Ball"))
+
+print("壓縮完成。")
