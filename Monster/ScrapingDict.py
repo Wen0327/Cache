@@ -5,12 +5,8 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 # 設定角色和球的基礎資料夾
-char_folder = os.path.expanduser(
-    "~/Downloads/Side Project/Cache/Downloads/downloaded_Char"
-)
-ball_folder = os.path.expanduser(
-    "~/Downloads/Side Project/Cache/Downloads/downloaded_Ball"
-)
+char_folder = os.path.expanduser("./Downloads/downloaded_Char")
+ball_folder = os.path.expanduser("./Downloads/downloaded_Ball")
 
 # 如果資料夾不存在，則建立資料夾
 os.makedirs(char_folder, exist_ok=True)
