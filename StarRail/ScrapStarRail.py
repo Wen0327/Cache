@@ -21,12 +21,6 @@ def save_image(img_url, save_dir, index, url):
     """
     if img_url.startswith("data:image"):
         try:
-            # header, encoded = img_url.split(",", 1)
-            # file_ext = header.split("/")[1].split(";")[0]
-            # file_path = os.path.join(save_dir, f"data_image_{index}.{file_ext}")
-            # with open(file_path, "wb") as file:
-            #     file.write(base64.b64decode(encoded))
-            # print(f"Base64 圖片保存成功: {file_path}")
             print(f"Base64 跳過")
         except Exception as e:
             print(f"無法保存 Base64 圖片: {e}")
@@ -49,9 +43,47 @@ def save_image(img_url, save_dir, index, url):
             print(f"下載失敗: {img_url}, 错误: {e}")
 
 
+def download_avatar_images(base_url, save_dir="downloaded_images/avatar"):
+    """
+    下載一次所有 class 包含 "avatar" 的 <img> 圖片，並保存到 avatar 資料夾。
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # 無界面模式
+    chrome_options.add_argument("--disable-gpu")  # 禁用 GPU 加速
+    chrome_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=chrome_options)
+
+    try:
+        url = base_url.format(worldIndex=1)
+        driver.get(url)
+        print(f"等待 JavaScript 加载完成...")
+        time.sleep(5)  # 等待 JavaScript 加载完成
+
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+
+        avatar_images = []
+        img_tags = soup.find_all("img", class_=lambda cls: cls and "avatar" in cls)
+        for index, img_tag in enumerate(img_tags):
+            img_url = img_tag.get("src")
+            if img_url:
+                avatar_images.append((img_url, index))
+
+        print(f"找到 {len(avatar_images)} 張 avatar 圖片，開始下載...")
+
+        # 使用 ThreadPoolExecutor 進行多執行緒下載
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for img_url, index in avatar_images:
+                executor.submit(save_image, img_url, save_dir, index, url)
+
+    finally:
+        driver.quit()
+
+
 def download_images_with_selenium(url, save_dir="downloaded_images"):
     """
-    使用 Selenium從動態網頁下載所有 style="background-image: url()" 的圖片，以及 class 包含 "avatar" 的 <img> 標籤。
+    使用 Selenium 從動態網頁下載所有 style="background-image: url()" 的圖片。
 
     :param url: 網頁的 URL
     :param save_dir: 圖片保存的目录
@@ -84,24 +116,12 @@ def download_images_with_selenium(url, save_dir="downloaded_images"):
 
         print(f"找到 {len(background_images)} 張背景圖片，開始下載...")
 
-        # 找到所有 class 包含 "avatar" 的 <img> 圖片
-        avatar_images = []
-        img_tags = soup.find_all("img", class_=lambda cls: cls and "avatar" in cls)
-        for index, img_tag in enumerate(img_tags):
-            img_url = img_tag.get("src")
-            if img_url:
-                avatar_images.append((img_url, index + len(background_images)))
-
-        print(f"找到 {len(avatar_images)} 張 avatar 圖片，開始下載...")
-
-        all_images = background_images + avatar_images
-
         # 使用 ThreadPoolExecutor 進行多執行緒下載
-        with ThreadPoolExecutor(max_workers=20) as executor:
-            for img_url, index in all_images:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            for img_url, index in background_images:
                 executor.submit(save_image, img_url, save_dir, index, url)
 
-        return all_images
+        return background_images
 
     finally:
         driver.quit()
@@ -112,6 +132,9 @@ if __name__ == "__main__":
         "https://hsr.hoyoverse.com/zh-tw/character?worldIndex={worldIndex}&charIndex=1"
     )
     save_dir = "downloaded_images"
+
+    # 首次下載 avatar 圖片
+    download_avatar_images(base_url)
 
     worldIndex = 1
     previous_images = set()
