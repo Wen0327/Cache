@@ -64,7 +64,9 @@ def download_avatar_images(base_url, save_dir="downloaded_images/avatar"):
         soup = BeautifulSoup(html, "html.parser")
 
         avatar_images = []
-        img_tags = soup.find_all("img", class_=lambda cls: cls and "avatar" in cls)
+        img_tags = soup.find_all(
+            "img", class_=lambda cls: cls and ("avatar" in cls or "char-pro" in cls)
+        )
         for index, img_tag in enumerate(img_tags):
             img_url = img_tag.get("src")
             if img_url:
