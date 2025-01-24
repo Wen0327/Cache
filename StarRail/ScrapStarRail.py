@@ -7,8 +7,8 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 
 
-def initialize_webdriver(headless=True):
-    """初始化 Selenium WebDriver。"""
+def init_webdriver(headless=True):
+    """init Selenium WebDriver。"""
     chrome_options = Options()
     if headless:
         chrome_options.add_argument("--headless")
@@ -23,9 +23,11 @@ def initialize_webdriver(headless=True):
 
 def save_image(img_url, save_dir, index, base_url):
     """
-    儲存圖片，處理普通 URL
+    save image and handle URL
     """
 
+    # to avoid Base64 undefine error
+    # using startswith to compare url and Base64
     if img_url.startswith("data:image"):
         print("Base64 圖片跳過")
         return
@@ -104,8 +106,13 @@ def download_avatar_images(driver, base_url, save_dir="downloaded_images/avatar"
     html = fetch_page_source(driver, url)
     soup = BeautifulSoup(html, "html.parser")
     avatar_images = parse_images(soup, css_class="avatar")
-    print(f"找到 {len(avatar_images)} 張 avatar 圖片，開始下載...")
-    download_images(avatar_images, save_dir, base_url)
+    odd_avatar_images = [
+        (img_url, idx)
+        for idx, (img_url, _) in enumerate(avatar_images, start=1)
+        if idx % 2 == 1
+    ]
+    print(f"找到 {len(odd_avatar_images)} 張 avatar 圖片，開始下載...")
+    download_images(odd_avatar_images, save_dir, base_url)
 
 
 def download_world_images(driver, base_url, save_dir="downloaded_images", max_world=10):
@@ -141,7 +148,7 @@ if __name__ == "__main__":
         "https://hsr.hoyoverse.com/zh-tw/character?worldIndex={worldIndex}&charIndex=1"
     )
 
-    driver = initialize_webdriver()  # 初始化 WebDriver
+    driver = init_webdriver()
 
     try:
         download_avatar_images(driver, base_url)
