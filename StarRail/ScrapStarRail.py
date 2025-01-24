@@ -13,6 +13,9 @@ def initialize_webdriver(headless=True):
     if headless:
         chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--disable-browser-side-navigation")
+    chrome_options.add_argument("--disable-infobars")
     chrome_options.add_argument("--no-sandbox")
     return webdriver.Chrome(options=chrome_options)
 
@@ -31,6 +34,11 @@ def save_image(img_url, save_dir, index, base_url):
 
     img_name = os.path.basename(img_url.split("?")[0])
     file_path = os.path.join(save_dir, img_name)
+
+    # check whether the image been download
+    if os.path.exists(file_path):
+        print(f"圖片已存在，跳過: {file_path}")
+        return
 
     try:
         response = requests.get(img_url, stream=True, timeout=10)
