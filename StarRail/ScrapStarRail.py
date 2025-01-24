@@ -115,6 +115,52 @@ def download_avatar_images(driver, base_url, save_dir="downloaded_images/avatar"
     download_images(odd_avatar_images, save_dir, base_url)
 
 
+def download_char_pro_images(
+    driver, base_url, save_dir="downloaded_images/attribute", max_world=10
+):
+    """
+    下載 class 包含 "char-pro" 的圖片，並根據前5碼匹配跳過下載。
+    """
+
+    previous_images = set()
+    downloaded_prefixes = set()  # 用於記錄已下載圖片的前5碼
+
+    for world_index in range(1, max_world + 1):
+
+        url = base_url.format(worldIndex=world_index)
+        html = fetch_page_source(driver, url)
+        soup = BeautifulSoup(html, "html.parser")
+        attribute_images = parse_images(soup, css_class="char-pro")
+
+        if not attribute_images:
+            print(f"worldIndex {world_index} 找不到背景圖片，結束處理。")
+            break
+
+        current_images_set = set(img[0] for img in attribute_images)
+        if current_images_set == previous_images:
+            print("下載的圖片與上一個 worldIndex 相同，跳過處理。")
+            continue
+
+        # 過濾已下載過的前5碼匹配的圖片
+        filtered_images = []
+        for img_url, idx in attribute_images:
+            img_name = os.path.basename(img_url.split("?")[0])
+            img_prefix = img_name[:5]  # 提取檔名前5碼
+            if img_prefix in downloaded_prefixes:
+                print(f"圖片前5碼匹配，跳過: {img_name}")
+                continue
+            filtered_images.append((img_url, idx))
+            downloaded_prefixes.add(img_prefix)
+
+        if not filtered_images:
+            print(f"worldIndex {world_index}: 所有圖片已下載，跳過處理。")
+            continue
+
+        print(f"worldIndex {world_index}: 開始下載過濾後的背景圖片...")
+        download_images(filtered_images, save_dir, url)
+        previous_images = current_images_set
+
+
 def download_world_images(driver, base_url, save_dir="downloaded_images", max_world=10):
     """
     循環下載不同 worldIndex 的背景圖片。
@@ -151,6 +197,7 @@ if __name__ == "__main__":
     driver = init_webdriver()
 
     try:
+        download_char_pro_images(driver, base_url)
         download_avatar_images(driver, base_url)
         download_world_images(driver, base_url)
     finally:
