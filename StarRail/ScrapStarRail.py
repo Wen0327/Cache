@@ -1,12 +1,9 @@
 import os
 import time
-import base64
+import requests
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-import requests
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -22,8 +19,9 @@ def initialize_webdriver(headless=True):
 
 def save_image(img_url, save_dir, index, base_url):
     """
-    儲存圖片，包括處理普通 URL 和 Base64 圖片。
+    儲存圖片，處理普通 URL
     """
+
     if img_url.startswith("data:image"):
         print("Base64 圖片跳過")
         return
@@ -48,15 +46,11 @@ def save_image(img_url, save_dir, index, base_url):
         print(f"下載失敗: {img_url}, 錯誤: {e}")
 
 
-def fetch_page_source(url, wait_time=5):
-    """使用 Selenium 獲取網頁源代碼。"""
-    driver = initialize_webdriver()
-    try:
-        driver.get(url)
-        time.sleep(wait_time)  # 等待 JavaScript 加載完成
-        return driver.page_source
-    finally:
-        driver.quit()
+def fetch_page_source(driver, url, wait_time=5):
+    """使用 Selenium 獲取網頁源代碼，沿用同一個 WebDriver 實例。"""
+    driver.get(url)
+    time.sleep(wait_time)  # 等待 JavaScript 加載完成
+    return driver.page_source
 
 
 def parse_images(soup, css_class):
@@ -93,19 +87,19 @@ def download_images(image_list, save_dir, base_url):
             executor.submit(save_image, img_url, save_dir, index, base_url)
 
 
-def download_avatar_images(base_url, save_dir="downloaded_images/avatar"):
+def download_avatar_images(driver, base_url, save_dir="downloaded_images/avatar"):
     """
     下載 class 包含 "avatar" 的圖片。
     """
     url = base_url.format(worldIndex=1)
-    html = fetch_page_source(url)
+    html = fetch_page_source(driver, url)
     soup = BeautifulSoup(html, "html.parser")
     avatar_images = parse_images(soup, css_class="avatar")
     print(f"找到 {len(avatar_images)} 張 avatar 圖片，開始下載...")
     download_images(avatar_images, save_dir, base_url)
 
 
-def download_world_images(base_url, save_dir="downloaded_images", max_world=10):
+def download_world_images(driver, base_url, save_dir="downloaded_images", max_world=10):
     """
     循環下載不同 worldIndex 的背景圖片。
     """
@@ -115,7 +109,7 @@ def download_world_images(base_url, save_dir="downloaded_images", max_world=10):
         os.makedirs(world_save_dir, exist_ok=True)
 
         url = base_url.format(worldIndex=world_index)
-        html = fetch_page_source(url)
+        html = fetch_page_source(driver, url)
         soup = BeautifulSoup(html, "html.parser")
 
         background_images = parse_background_images(soup)
@@ -137,5 +131,11 @@ if __name__ == "__main__":
     base_url = (
         "https://hsr.hoyoverse.com/zh-tw/character?worldIndex={worldIndex}&charIndex=1"
     )
-    download_avatar_images(base_url)
-    download_world_images(base_url)
+
+    driver = initialize_webdriver()  # 初始化 WebDriver
+
+    try:
+        download_avatar_images(driver, base_url)
+        download_world_images(driver, base_url)
+    finally:
+        driver.quit()  # 程式執行結束後關閉 WebDriver
