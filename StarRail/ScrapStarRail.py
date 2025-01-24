@@ -13,6 +13,7 @@ def initialize_webdriver(headless=True):
     if headless:
         chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-browser-side-navigation")
     chrome_options.add_argument("--disable-infobars")
